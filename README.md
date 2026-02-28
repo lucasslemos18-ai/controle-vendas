@@ -1,218 +1,201 @@
-# controle-vendas
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Vendas v2.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vendas Mobile</title>
     <script src="https://cdnjs.cloudflare.com"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h2 { color: #1a73e8; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; margin-top: 30px; }
+        :root { --primary: #075e54; --secondary: #25d366; --bg: #e5ddd5; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #333; }
+        
+        .app-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { font-size: 1.2rem; color: var(--primary); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #444; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #666; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: #fafafa; }
         
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        
-        button { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-save { background-color: #00a884; color: white; width: 100%; font-size: 16px; margin-top: 10px; }
-        .btn-save:hover { background-color: #008f70; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
-        th { background-color: #f8f9fa; color: #555; }
-        
-        .actions { display: flex; gap: 5px; }
-        .btn-pdf { background-color: #d93025; color: white; }
-        .btn-wpp { background-color: #25d366; color: white; }
-        
-        /* Layout do Recibo PDF */
-        #recibo-template { display: none; padding: 50px; font-family: Arial, sans-serif; }
-        .recibo-header { text-align: center; border-bottom: 2px solid #000; margin-bottom: 20px; }
+        .row { display: flex; gap: 10px; }
+        .row > div { flex: 1; }
+
+        button { width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-main { background: var(--primary); color: white; margin-top: 10px; }
+        .btn-pdf { background: #e74c3c; color: white; margin-bottom: 5px; }
+        .btn-wpp { background: var(--secondary); color: white; }
+
+        /* Lista de Vendas estilo Mobile */
+        .venda-item { background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 5px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .venda-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px; font-size: 0.9rem; }
+        .venda-detalhes { font-size: 0.9rem; color: #555; line-height: 1.5; margin-bottom: 10px; }
+        .venda-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        /* Estilo do PDF (Escondido) */
+        #recibo-print { display: none; width: 300px; padding: 20px; font-family: 'Courier New', Courier, monospace; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 style="margin-top:0">Registrar Nova Venda</h2>
+<div class="app-card">
+    <h2>📝 Nova Venda</h2>
     <form id="vendaForm">
-        <div class="grid">
+        <div class="row">
             <div class="form-group">
                 <label>Nº Recibo</label>
-                <input type="text" id="reciboNum" readonly style="background: #eee;">
+                <input type="text" id="reciboNum" readonly style="color: #999;">
             </div>
             <div class="form-group">
-                <label>Data/Hora</label>
-                <input type="text" id="dataHora" readonly style="background: #eee;">
-            </div>
-        </div>
-
-        <div class="grid">
-            <div class="form-group">
-                <label>Mercadoria</label>
-                <input type="text" id="mercadoria" required placeholder="Ex: Notebook">
-            </div>
-            <div class="form-group">
-                <label>Comprador</label>
-                <input type="text" id="comprador" required placeholder="Nome do cliente">
-            </div>
-        </div>
-
-        <div class="grid">
-            <div class="form-group">
-                <label>Valor (R$)</label>
-                <input type="number" step="0.01" id="valor" required placeholder="0,00">
-            </div>
-            <div class="form-group">
-                <label>Forma de Pagamento</label>
-                <select id="formaPagamento" required>
-                    <option value="">Selecione...</option>
-                    <option value="Pix">Pix</option>
-                    <option value="Dinheiro">Dinheiro</option>
-                    <option value="Cartão de Crédito">Cartão de Crédito</option>
-                    <option value="Cartão de Débito">Cartão de Débito</option>
-                    <option value="Transferência">Transferência Bancária</option>
-                </select>
+                <label>Data</label>
+                <input type="text" id="dataHora" readonly style="color: #999;">
             </div>
         </div>
 
         <div class="form-group">
-            <label>Anexar Comprovante (Opcional)</label>
+            <label>Mercadoria</label>
+            <input type="text" id="mercadoria" required placeholder="Nome do produto">
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label>Quantidade</label>
+                <input type="number" id="qtd" value="1" min="1" required>
+            </div>
+            <div class="form-group">
+                <label>Valor Unit. (R$)</label>
+                <input type="number" step="0.01" id="valor" required placeholder="0,00">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Nome do Comprador</label>
+            <input type="text" id="comprador" required placeholder="Quem comprou?">
+        </div>
+
+        <div class="form-group">
+            <label>Forma de Pagamento</label>
+            <select id="formaPagamento" required>
+                <option value="Pix">Pix</option>
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="Cartão">Cartão</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Comprovante (Foto)</label>
             <input type="file" id="comprovante" accept="image/*">
         </div>
 
-        <button type="submit" class="btn-save">FINALIZAR VENDA</button>
+        <button type="submit" class="btn-main">✅ SALVAR OPERAÇÃO</button>
     </form>
-
-    <h2>Histórico de Operações</h2>
-    <div style="overflow-x:auto;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Recibo</th>
-                    <th>Cliente</th>
-                    <th>Valor</th>
-                    <th>Pagamento</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="corpoTabela"></tbody>
-        </table>
-    </div>
 </div>
 
-<!-- Estrutura do PDF -->
-<div id="recibo-template">
-    <div class="recibo-header">
-        <h1>RECIBO DE PAGAMENTO</h1>
-        <p>Controle de Vendas Profissional</p>
-    </div>
-    <div style="line-height: 1.8;">
-        <p><strong>Número do Recibo:</strong> <span id="pdf-num"></span></p>
-        <p><strong>Data de Emissão:</strong> <span id="pdf-data"></span></p>
-        <hr>
-        <p>Recebemos de <strong><span id="pdf-cliente"></span></strong>,</p>
-        <p>a importância de <strong>R$ <span id="pdf-valor"></span></strong></p>
-        <p>referente à compra de: <strong><span id="pdf-item"></span></strong>.</p>
-        <p><strong>Forma de Pagamento:</strong> <span id="pdf-forma"></span></p>
-    </div>
-    <div style="margin-top: 100px; text-align: center;">
-        <p>_________________________________________________</p>
-        <p>Assinatura do Emitente</p>
-    </div>
+<h2 style="padding-left: 10px;">📋 Histórico Recente</h2>
+<div id="listaVendas"></div>
+
+<!-- Template para Impressão -->
+<div id="recibo-print">
+    <center>
+        <h3>RECIBO DE VENDA</h3>
+        <p>--------------------------</p>
+    </center>
+    <p><b>RECIBO:</b> <span id="p-id"></span></p>
+    <p><b>DATA:</b> <span id="p-data"></span></p>
+    <p><b>CLIENTE:</b> <span id="p-cliente"></span></p>
+    <p>--------------------------</p>
+    <p><b>PROD:</b> <span id="p-prod"></span></p>
+    <p><b>QTD:</b> <span id="p-qtd"></span></p>
+    <p><b>TOTAL:</b> R$ <span id="p-total"></span></p>
+    <p><b>PAGTO:</b> <span id="p-forma"></span></p>
+    <p>--------------------------</p>
+    <center><p>Obrigado pela preferência!</p></center>
 </div>
 
 <script>
-    let vendas = JSON.parse(localStorage.getItem('vendas_v2')) || [];
+    let vendas = JSON.parse(localStorage.getItem('vendas_mobile')) || [];
 
-    function gerarId() {
+    function init() {
         const agora = new Date();
-        document.getElementById('reciboNum').value = 'REC-' + agora.getTime().toString().slice(-6);
-        document.getElementById('dataHora').value = agora.toLocaleString('pt-BR');
+        document.getElementById('reciboNum').value = Math.floor(Date.now() / 1000).toString().slice(-6);
+        document.getElementById('dataHora').value = agora.toLocaleDateString() + ' ' + agora.toLocaleTimeString([], {hour: '2-min', minute:'2-min'});
     }
 
     document.getElementById('vendaForm').addEventListener('submit', function(e) {
         e.preventDefault();
-
-        const venda = {
+        const v = {
             id: document.getElementById('reciboNum').value,
             data: document.getElementById('dataHora').value,
-            mercadoria: document.getElementById('mercadoria').value,
-            comprador: document.getElementById('comprador').value,
+            prod: document.getElementById('mercadoria').value,
+            qtd: document.getElementById('qtd').value,
             valor: document.getElementById('valor').value,
-            forma: document.getElementById('formaPagamento').value
+            cliente: document.getElementById('comprador').value,
+            forma: document.getElementById('formaPagamento').value,
+            total: (document.getElementById('qtd').value * document.getElementById('valor').value).toFixed(2)
         };
-
-        vendas.push(venda);
-        localStorage.setItem('vendas_v2', JSON.stringify(vendas));
-        
+        vendas.unshift(v);
+        localStorage.setItem('vendas_mobile', JSON.stringify(vendas));
         this.reset();
-        gerarId();
-        renderizarTabela();
-        alert('Venda salva com sucesso!');
+        init();
+        render();
+        window.scrollTo(0, document.body.scrollHeight);
     });
 
-    function renderizarTabela() {
-        const lista = document.getElementById('corpoTabela');
-        lista.innerHTML = '';
-
-        vendas.forEach((v, i) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${v.id}</td>
-                <td>${v.comprador}</td>
-                <td>R$ ${parseFloat(v.valor).toFixed(2)}</td>
-                <td><span style="background:#e8f0fe; padding:4px 8px; border-radius:4px; font-size:12px">${v.forma}</span></td>
-                <td class="actions">
-                    <button class="btn-pdf" onclick="baixarPDF(${i})">PDF</button>
-                    <button class="btn-wpp" onclick="zap(${i})">Zap</button>
-                </td>
-            `;
-            lista.appendChild(tr);
-        });
+    function render() {
+        const container = document.getElementById('listaVendas');
+        container.innerHTML = vendas.map((v, i) => `
+            <div class="venda-item">
+                <div class="venda-header">
+                    <span>#${v.id}</span>
+                    <span style="color:var(--primary)">R$ ${v.total}</span>
+                </div>
+                <div class="venda-detalhes">
+                    <b>${v.prod}</b> (${v.qtd} un)<br>
+                    Cliente: ${v.cliente}<br>
+                    Pagto: ${v.forma} - ${v.data}
+                </div>
+                <div class="venda-acoes">
+                    <button class="btn-pdf" onclick="gerarPDF(${i})">📄 PDF</button>
+                    <button class="btn-wpp" onclick="zap(${i})">📱 Zap</button>
+                </div>
+            </div>
+        `).join('');
     }
 
-    function baixarPDF(i) {
+    function gerarPDF(i) {
         const v = vendas[i];
-        document.getElementById('pdf-num').innerText = v.id;
-        document.getElementById('pdf-data').innerText = v.data;
-        document.getElementById('pdf-cliente').innerText = v.comprador;
-        document.getElementById('pdf-item').innerText = v.mercadoria;
-        document.getElementById('pdf-valor').innerText = parseFloat(v.valor).toFixed(2);
-        document.getElementById('pdf-forma').innerText = v.forma;
+        document.getElementById('p-id').innerText = v.id;
+        document.getElementById('p-data').innerText = v.data;
+        document.getElementById('p-cliente').innerText = v.cliente;
+        document.getElementById('p-prod').innerText = v.prod;
+        document.getElementById('p-qtd').innerText = v.qtd;
+        document.getElementById('p-total').innerText = v.total;
+        document.getElementById('p-forma').innerText = v.forma;
 
-        const containerPDF = document.getElementById('recibo-template');
-        containerPDF.style.display = 'block';
-
-        const config = {
-            margin: 1,
-            filename: `Recibo_${v.id}.pdf`,
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
-
-        html2pdf().set(config).from(containerPDF).save().then(() => {
-            containerPDF.style.display = 'none';
-        });
+        const el = document.getElementById('recibo-print');
+        el.style.display = 'block';
+        html2pdf().from(el).set({
+            margin: 10,
+            filename: 'recibo-'+v.id+'.pdf',
+            jsPDF: { unit: 'mm', format: 'a6' }
+        }).save().then(() => el.style.display = 'none');
     }
 
     function zap(i) {
         const v = vendas[i];
-        const msg = `*RECIBO DE VENDA - Nº ${v.id}*%0A%0A` +
-                    `*Cliente:* ${v.comprador}%0A` +
-                    `*Produto:* ${v.mercadoria}%0A` +
-                    `*Valor:* R$ ${parseFloat(v.valor).toFixed(2)}%0A` +
-                    `*Pagamento:* ${v.forma}%0A` +
-                    `*Data:* ${v.data}%0A%0A` +
-                    `Obrigado pela compra!`;
-        
-        window.open(`https://api.whatsapp.com{msg}`, '_blank');
+        const texto = encodeURIComponent(
+            `*RESUMO DA COMPRA - RECIBO #${v.id}*\n\n` +
+            `*Produto:* ${v.prod}\n` +
+            `*Qtd:* ${v.qtd}\n` +
+            `*Total:* R$ ${v.total}\n` +
+            `*Pagamento:* ${v.forma}\n` +
+            `*Cliente:* ${v.cliente}\n` +
+            `*Data:* ${v.data}\n\n` +
+            `_Comprovante emitido via Sistema Mobile_`
+        );
+        window.open(`https://api.whatsapp.com{texto}`);
     }
 
-    gerarId();
-    renderizarTabela();
+    init();
+    render();
 </script>
 
 </body>
